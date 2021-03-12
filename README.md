@@ -1,11 +1,10 @@
 # DataJoint pipeline for Finkelstein, Fontolan et al. project
 
-This repository houses the source code for the DataJoint pipeline (in MATLAB), 
-processing/analysis code, and data accompanying the following publication:
+This repository houses the data analysis code accompanying the following publication: 
 
-    <publication>
+Finkelstein, Fontolan et al. "Attractor dynamics gate cortical information flow during decision-making"
 
-For users interested in recreate this pipeline, import data and reproduce the analysis results, 
+The pipeline for data analysis is in DataJoint framework. For users interested in recreating this pipeline, import data and reproduce the analysis results, 
 please see the instruction below.
 
 # Initialize the pipeline
@@ -48,6 +47,10 @@ Rename `template_dj_local_conf.json` to `dj_local_conf.json`
 (Advanced users are welcome to make any modifications as needed)
 
 ## Step 3: Download the NWB files
+
+NWB files with extracellular electrophysioligical recordings are available here:
+https://gui.dandiarchive.org/#/dandiset/000060
+
 
 Create a new folder named ***nwb_data*** in this ***DJ_S1ALM*** working directory 
 
