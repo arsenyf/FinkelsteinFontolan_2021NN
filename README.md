@@ -1,4 +1,4 @@
-# DataJoint pipeline for S1ALM project
+# DataJoint pipeline for Finkelstein, Fontolan et al. project
 
 This repository houses the source code for the DataJoint pipeline (in MATLAB), 
 processing/analysis code, and data accompanying the following publication:
