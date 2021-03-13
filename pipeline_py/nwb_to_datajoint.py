@@ -24,7 +24,6 @@ def ingest_to_pipeline(nwb_filepath):
     io = NWBHDF5IO(pathlib.Path(nwb_filepath).as_posix(), mode='r', load_namespaces=True)
     nwbfile = io.read()
     subject_key = {'subject_id': nwbfile.subject.subject_id}
-
     # =============================== SUBJECT ===========================
     if subject_key not in lab.Subject.proj():
         # lab.Subject
@@ -43,33 +42,35 @@ def ingest_to_pipeline(nwb_filepath):
 
     # =============================== SESSION ===========================
     session_key = {**subject_key, 'session': int(nwbfile.identifier.split('_')[-1])}
+    print(f'\tSession: {session_key}')
     if session_key not in experiment.Session.proj():
+        print(f'\tSession...')
         experiment.Session.insert1({**session_key, 'session_date': nwbfile.session_start_time.date(),
                                     'username': nwbfile.experimenter[0], 'rig': 'ephys'})
         experiment.SessionComment.insert1({**session_key, 'session_comment': nwbfile.data_collection})
 
-    # ======================== EXTRACELLULAR & CLUSTERING ===========================
-    # Electrode Group
-    electrode_group_keys = {}
-    for egroup_no, egroup in nwbfile.electrode_groups.items():
-        probe_type, probe_part_no = egroup.device.name.split('_')
-        egroup_key = {**session_key, 'electrode_group': int(egroup_no)}
-        electrode_group_keys[int(egroup_no)] = egroup_key
-        insert_location = {k: None if v == 'None' else v
-                           for k, v in json.loads(egroup.location).items()}
-
-        ephys.Probe.insert1({'probe_part_no': probe_part_no,
-                             'probe_type': probe_type, 'probe_comment': ''}, skip_duplicates=True)
-        ephys.ElectrodeGroup.insert1({**egroup_key,
-                                      'probe_part_no': probe_part_no})
-        ephys.ElectrodeGroup.Position.insert1({**egroup_key, **insert_location,
-                                               'cf_annotation_type': 'manipulator'}, ignore_extra_fields=True)
-
-    # Unit
     units_df = nwbfile.units.to_dataframe()
     trials_df = nwbfile.trials.to_dataframe()
 
+    # ======================== EXTRACELLULAR & CLUSTERING ===========================
     if not (ephys.Unit.Spikes & session_key):
+        print('\tClustering & Units...')
+        # Electrode Group
+        electrode_group_keys = {}
+        for egroup_no, egroup in nwbfile.electrode_groups.items():
+            probe_type, probe_part_no = egroup.device.name.split('_')
+            egroup_key = {**session_key, 'electrode_group': int(egroup_no)}
+            electrode_group_keys[int(egroup_no)] = egroup_key
+            insert_location = {k: None if v == 'None' else v
+                               for k, v in json.loads(egroup.location).items()}
+
+            ephys.Probe.insert1({'probe_part_no': probe_part_no,
+                                 'probe_type': probe_type, 'probe_comment': ''}, skip_duplicates=True)
+            ephys.ElectrodeGroup.insert1({**egroup_key,
+                                          'probe_part_no': probe_part_no})
+            ephys.ElectrodeGroup.Position.insert1({**egroup_key, **insert_location,
+                                                   'cf_annotation_type': 'manipulator'}, ignore_extra_fields=True)
+        # Unit
         unit_list, unit_celltype_list, unit_position_list = [], [], []
         unit_spikes_list, unit_wf_list, trialspikes_list = [], [], []
         for unit_id, unit in units_df.iterrows():
@@ -105,6 +106,7 @@ def ingest_to_pipeline(nwb_filepath):
     # =============================== BEHAVIOR TRIALS ===============================
     # trials
     if not (experiment.BehaviorTrial & session_key):
+        print('\tBehavior & trials...')
         session_trial_list, behavior_trial_list, trial_name_list, photostim_trial_list = [], [], [], []
         photostim_event_list, behavior_event_list, action_event_list = [], [], []
         trial_go_times = {}  # times of go-cue for each trial (relative to trial's start)
