@@ -38,7 +38,7 @@ classdef SessionBehavPerformance < dj.Computed
             k = key;
             
             %% Populating ANL.SessionBehavPerformance
-            task = fetch1(EXP.SessionTask & key,'task');
+            task = fetch1(EXP.Task & key,'task');
             trials_quit = fetch1(ANL.SessionBehavOverview & key,'trials_quit');
             
             trial_type_names = unique([fetchn((EXP.TrialName) & key, 'trial_type_name')]);
