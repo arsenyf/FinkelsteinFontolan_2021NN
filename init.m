@@ -1,12 +1,14 @@
 clear all, close all, clc
 
-% Load configuration
+%% Load configuration
 dj.config();
 dj.config.load('dj_local_conf.json')
 cfg = dj.config;
 
 package_names = {'CF', 'LAB','EXP', 'EPHYS', 'MISC', 'ANL'};
 schema_names = {'cf', 'lab','experiment', 'ephys', 'misc', 'analysis'};
+
+%% Instantiate the pipeline
 
 % Create schemas 
 for s_idx = 1 : numel(schema_names)
@@ -31,4 +33,14 @@ for s_idx = 1 : numel(schema_names)
        end
    end
 end
+
+%% Progress on data ingestion
+disp('--------------------- INGESTION PROGRESS --------------------------')
+
+total_session_count = 98;
+
+q_ingested_session = EXP.Session & EXP.BehaviorTrial & EPHYS.Unit;
+ingested_session_count = length(fetch(q_ingested_session));
+
+fprintf('REPORT: %d/%d sessions ingested\n', ingested_session_count, total_session_count)
 

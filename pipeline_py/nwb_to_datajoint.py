@@ -20,6 +20,7 @@ fiducials_type_dict = {(p['tracking_device_id'], p['video_fiducial_name']): p
 
 
 def ingest_to_pipeline(nwb_filepath):
+    print('-----------------------------------------------------------------------')
     print(f'Ingesting from: {nwb_filepath.name} ...')
     io = NWBHDF5IO(pathlib.Path(nwb_filepath).as_posix(), mode='r', load_namespaces=True)
     nwbfile = io.read()
@@ -52,64 +53,14 @@ def ingest_to_pipeline(nwb_filepath):
     units_df = nwbfile.units.to_dataframe()
     trials_df = nwbfile.trials.to_dataframe()
 
-    # ======================== EXTRACELLULAR & CLUSTERING ===========================
-    if not (ephys.Unit.Spikes & session_key):
-        print('\tClustering & Units...')
-        # Electrode Group
-        electrode_group_keys = {}
-        for egroup_no, egroup in nwbfile.electrode_groups.items():
-            probe_type, probe_part_no = egroup.device.name.split('_')
-            egroup_key = {**session_key, 'electrode_group': int(egroup_no)}
-            electrode_group_keys[int(egroup_no)] = egroup_key
-            insert_location = {k: None if v == 'None' else v
-                               for k, v in json.loads(egroup.location).items()}
-
-            ephys.Probe.insert1({'probe_part_no': probe_part_no,
-                                 'probe_type': probe_type, 'probe_comment': ''}, skip_duplicates=True)
-            ephys.ElectrodeGroup.insert1({**egroup_key,
-                                          'probe_part_no': probe_part_no})
-            ephys.ElectrodeGroup.Position.insert1({**egroup_key, **insert_location,
-                                                   'cf_annotation_type': 'manipulator'}, ignore_extra_fields=True)
-        # Unit
-        unit_list, unit_celltype_list, unit_position_list = [], [], []
-        unit_spikes_list, unit_wf_list, trialspikes_list = [], [], []
-        for unit_id, unit in units_df.iterrows():
-            dj.conn().ping()
-            unit_key = {**electrode_group_keys[int(unit.electrode_group.name)], 'unit': unit_id}
-            unit_list.append({**unit_key, 'unit_uid': len(ephys.Unit()) + len(unit_list), 'unit_quality': unit.quality,
-                              'unit_channel': unit.electrodes.index[0]})
-            unit_celltype_list.append({**unit_key, 'cell_type': unit.cell_type})
-            unit_spikes_list.append({**unit_key, 'spike_times': unit.spike_times})
-            unit_position_list.append({**unit_key, 'cf_annotation_type': 'manipulator',
-                                       'hemisphere': insert_location['hemisphere'],
-                                       'brain_area': insert_location['brain_area'],
-                                       'skull_reference': insert_location['skull_reference'],
-                                       'unit_ml_location': unit.unit_ml_location,
-                                       'unit_ap_location': unit.unit_ap_location,
-                                       'unit_dv_location': unit.unit_dv_location})
-            unit_wf_list.append({**unit_key, 'waveform': unit.waveform_mean.flatten(),
-                                 'spk_width_ms': unit.spk_width_ms,
-                                 'sampling_fq': unit.sampling_rate,
-                                 'waveform_amplitude': unit.waveform_amplitude})
-            # trial-spikes
-            for trial_id, start_time, stop_time in zip(trials_df.index, trials_df.start_time, trials_df.stop_time):
-                spks = unit.spike_times[np.logical_and(unit.spike_times >= start_time, unit.spike_times < stop_time)]
-                if len(spks):
-                    trialspikes_list.append({**unit_key, 'trial': trial_id, 'spike_times': spks - start_time})
-
-        ephys.Unit.insert(unit_list, allow_direct_insert=True)
-        ephys.UnitCellType.insert(unit_celltype_list, allow_direct_insert=True)
-        ephys.Unit.Position.insert(unit_position_list, allow_direct_insert=True)
-        ephys.Unit.Spikes.insert(unit_spikes_list, allow_direct_insert=True)
-        ephys.Unit.Waveform.insert(unit_wf_list, allow_direct_insert=True)
-
     # =============================== BEHAVIOR TRIALS ===============================
-    # trials
+    bad_trials = []  # trials with invalid go-cue event times, to be removed!
     if not (experiment.BehaviorTrial & session_key):
         print('\tBehavior & trials...')
         session_trial_list, behavior_trial_list, trial_name_list, photostim_trial_list = [], [], [], []
         photostim_event_list, behavior_event_list, action_event_list = [], [], []
         trial_go_times = {}  # times of go-cue for each trial (relative to trial's start)
+
         for trial_id, trial in trials_df.iterrows():
             dj.conn().ping()
             # trials
@@ -137,6 +88,7 @@ def ingest_to_pipeline(nwb_filepath):
                 valid_trial_ind = np.where(np.logical_and(start_times >= trial.start_time,
                                                           start_times < trial.stop_time))[0]
                 if len(valid_trial_ind) == 0:
+                    bad_trials.append(trial_id)
                     continue
                 durations = nwbfile.acquisition['LabeledEvents'].timestamps[event_ind == event_stop_idx][valid_trial_ind] - start_times[valid_trial_ind]
 
@@ -167,14 +119,80 @@ def ingest_to_pipeline(nwb_filepath):
                                           'power': power, **photostim_dict[stim_id]}
                                          for start_time, power, stim_id in zip(start_times[valid_trial_ind], powers, stim_ind)])
 
-        experiment.SessionTrial.insert(session_trial_list, allow_direct_insert=True)
-        experiment.BehaviorTrial.insert(behavior_trial_list, allow_direct_insert=True)
-        experiment.TrialName.insert(trial_name_list, allow_direct_insert=True)
-        experiment.PhotostimTrial.insert(photostim_trial_list, allow_direct_insert=True)
-        experiment.BehaviorTrial.Event.insert(behavior_event_list, allow_direct_insert=True)
-        experiment.PhotostimTrial.Event.insert(photostim_event_list, allow_direct_insert=True)
-        experiment.ActionEvent.insert(action_event_list, allow_direct_insert=True)
-        ephys.TrialSpikes.insert(trialspikes_list, allow_direct_insert=True)
+        with experiment.SessionTrial.connection.transaction:
+            experiment.SessionTrial.insert(session_trial_list, allow_direct_insert=True)
+            experiment.BehaviorTrial.insert(behavior_trial_list, allow_direct_insert=True)
+            experiment.TrialName.insert(trial_name_list, allow_direct_insert=True)
+            experiment.PhotostimTrial.insert(photostim_trial_list, allow_direct_insert=True)
+            experiment.BehaviorTrial.Event.insert(behavior_event_list, allow_direct_insert=True)
+            experiment.PhotostimTrial.Event.insert(photostim_event_list, allow_direct_insert=True)
+            experiment.ActionEvent.insert(action_event_list, allow_direct_insert=True)
+
+        # delete bad trials
+        if bad_trials:
+            bad_trials = np.unique(bad_trials)
+            with dj.config(safemode=False):
+                print(f'\tRemoving {len(bad_trials)} bad trials: {bad_trials}')
+                (experiment.SessionTrial & session_key
+                 & f'trial in ({",".join(np.array(bad_trials).astype(str))})').delete()
+
+    # ======================== EXTRACELLULAR & CLUSTERING ===========================
+    if not (ephys.Unit.Spikes & session_key):
+        print('\tClustering & Units...')
+        # Electrode Group
+        electrode_group_keys = {}
+        for egroup_no, egroup in nwbfile.electrode_groups.items():
+            probe_type, probe_part_no = egroup.device.name.split('_')
+            egroup_key = {**session_key, 'electrode_group': int(egroup_no)}
+            electrode_group_keys[int(egroup_no)] = egroup_key
+            insert_location = {k: None if v == 'None' else v
+                               for k, v in json.loads(egroup.location).items()}
+
+            ephys.Probe.insert1({'probe_part_no': probe_part_no,
+                                 'probe_type': probe_type, 'probe_comment': ''},
+                                skip_duplicates=True)
+            ephys.ElectrodeGroup.insert1({**egroup_key,
+                                          'probe_part_no': probe_part_no})
+            ephys.ElectrodeGroup.Position.insert1({**egroup_key, **insert_location,
+                                                   'cf_annotation_type': 'manipulator'},
+                                                  ignore_extra_fields=True)
+        # Unit
+        unit_list, unit_celltype_list, unit_position_list = [], [], []
+        unit_spikes_list, unit_wf_list, trialspikes_list = [], [], []
+        for unit_id, unit in units_df.iterrows():
+            dj.conn().ping()
+            unit_key = {**electrode_group_keys[int(unit.electrode_group.name)], 'unit': unit_id}
+            unit_list.append({**unit_key, 'unit_uid': len(ephys.Unit()) + len(unit_list), 'unit_quality': unit.quality,
+                              'unit_channel': unit.electrodes.index[0]})
+            unit_celltype_list.append({**unit_key, 'cell_type': unit.cell_type})
+            unit_spikes_list.append({**unit_key, 'spike_times': unit.spike_times})
+            unit_position_list.append({**unit_key, 'cf_annotation_type': 'manipulator',
+                                       'hemisphere': insert_location['hemisphere'],
+                                       'brain_area': insert_location['brain_area'],
+                                       'skull_reference': insert_location['skull_reference'],
+                                       'unit_ml_location': unit.unit_ml_location,
+                                       'unit_ap_location': unit.unit_ap_location,
+                                       'unit_dv_location': unit.unit_dv_location})
+            unit_wf_list.append({**unit_key, 'waveform': unit.waveform_mean.flatten(),
+                                 'spk_width_ms': unit.spk_width_ms,
+                                 'sampling_fq': unit.sampling_rate,
+                                 'waveform_amplitude': unit.waveform_amplitude})
+            # trial-spikes
+            for trial_id, start_time, stop_time in zip(trials_df.index, trials_df.start_time,
+                                                       trials_df.stop_time):
+                if trial_id in bad_trials:
+                    continue
+                spks = unit.spike_times[np.logical_and(unit.spike_times >= start_time, unit.spike_times < stop_time)]
+                if len(spks):
+                    trialspikes_list.append({**unit_key, 'trial': trial_id, 'spike_times': spks - start_time})
+
+        with ephys.Unit.connection.transaction:
+            ephys.Unit.insert(unit_list, allow_direct_insert=True)
+            ephys.UnitCellType.insert(unit_celltype_list, allow_direct_insert=True)
+            ephys.Unit.Position.insert(unit_position_list, allow_direct_insert=True)
+            ephys.Unit.Spikes.insert(unit_spikes_list, allow_direct_insert=True)
+            ephys.Unit.Waveform.insert(unit_wf_list, allow_direct_insert=True)
+            ephys.TrialSpikes.insert(trialspikes_list, allow_direct_insert=True)
 
     io.close()
     print(f'\tIngestion for {session_key} completed!')
