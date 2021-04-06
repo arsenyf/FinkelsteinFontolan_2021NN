@@ -30,7 +30,7 @@ hardware_filter = 'Bandpass filtered 300-6K Hz'
 institution = 'Janelia Research Campus'
 
 study_description = dict(
-    related_publications='n/a',
+    related_publications='https://doi.org/10.1038/s41593-021-00840-6',
     experiment_description='Extracellular electrophysiology recordings in anterior lateral motor cortex and in vibrissal sensory cortex in mice trained to detect optogenetic stimulation of the vibrissal sensory cortex',
     keywords=['decision-making', 'motor cortex', 'optogenetic stimulation', 'extracellular electrophysiology', 'attractor'])
 
@@ -199,12 +199,27 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
     # and column description)
     q_photostim = ((experiment.BehaviorTrial.Event
                     & 'trial_event_type = "go"').proj(go_time='trial_event_time')
-                   * experiment.PhotostimTrial.Event * experiment.Photostim.proj(stim_dur='duration')
-                   & session_key).proj('stim_dur', stim_time='ROUND(go_time - photostim_event_time, 2)')
-    q_trial = experiment.SessionTrial * experiment.BehaviorTrial * experiment.TrialName & session_key
-    q_trial = q_trial.aggr(q_photostim, ..., photostim_onset='IFNULL(GROUP_CONCAT(stim_time SEPARATOR ", "), "N/A")',
-                           photostim_power='IFNULL(GROUP_CONCAT(power SEPARATOR ", "), "N/A")',
-                           photostim_duration='IFNULL(GROUP_CONCAT(stim_dur SEPARATOR ", "), "N/A")', keep_all_rows=True)
+                   * experiment.PhotostimTrial.Event
+                   * experiment.Photostim.proj(stim_dur='duration')
+                   & session_key).proj(
+        'stim_dur', stim_time='ROUND(go_time - photostim_event_time, 2)')
+    q_trial = (experiment.SessionTrial * experiment.BehaviorTrial
+               * experiment.TrialName & session_key)
+    q_trial = q_trial.aggr(
+        q_photostim, ...,
+        photostim_onset='IFNULL(GROUP_CONCAT(stim_time SEPARATOR ", "), "N/A")',
+        photostim_power='IFNULL(GROUP_CONCAT(power SEPARATOR ", "), "N/A")',
+        photostim_duration='IFNULL(GROUP_CONCAT(stim_dur SEPARATOR ", "), "N/A")',
+        keep_all_rows=True)
+
+    q_ephys_event = (experiment.BehaviorTrial.Event
+                     & 'trial_event_type = "trigger ephys rec."').proj(
+        ephys_trigger='trial_event_type', ephys_start='trial_event_time')
+    q_trial_event = (experiment.BehaviorTrial.Event * q_ephys_event
+                     & 'trial_event_type NOT in ("send scheduled wave", "trigger ephys rec.", "trigger imaging")'
+                     & session_key).proj(
+        event_start='trial_event_time - ephys_start',
+        event_stop='trial_event_time - ephys_start + duration')
 
     skip_adding_columns = experiment.Session.primary_key + ['trial_uid', 'trial']
 
@@ -215,17 +230,28 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
                          for tag in q_trial.heading.names
                          if tag not in skip_adding_columns + ['start_time', 'stop_time']}
         # Photostim labels from misc.S1PhotostimTrial
-        trial_columns.update({'photostim_' + tag: {'name': 'photostim_' + tag,
-                                    'description': misc.S1PhotostimTrial.heading.attributes[tag].comment}
-                              for tag in ('onset', 'power', 'duration')})
+        trial_columns.update({'photostim_' + tag: {
+            'name': 'photostim_' + tag,
+            'description': misc.S1PhotostimTrial.heading.attributes[tag].comment}
+            for tag in ('onset', 'power', 'duration')})
 
         # Add new table columns to nwb trial-table for trial-label
         for c in trial_columns.values():
             nwbfile.add_trial_column(**c)
 
         # Add entry to the trial-table
+        invalid_trials = []
         for trial in q_trial.fetch(as_dict=True):
             trial['start_time'], trial['stop_time'] = trial_times[trial['trial']]
+
+            # skip bad trials - those with invalid go-cue time
+            has_invalid_events = bool((q_trial_event & {'trial': trial['trial']}
+                                       & f'event_start >= {trial["stop_time"] - trial["start_time"]}'))
+            if has_invalid_events:
+                invalid_trials.append(trial['trial'])
+                continue
+
+            # create trial entries
             trial['id'] = trial['trial']  # rename 'trial_id' to 'id'
             [trial.pop(k) for k in skip_adding_columns]
             nwbfile.add_trial(**trial)
@@ -238,14 +264,9 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
     event_labels = OrderedDict()
 
     # ---- behavior events ----
-    q_ephys_event = (experiment.BehaviorTrial.Event & 'trial_event_type = "trigger ephys rec."').proj(
-        ephys_trigger='trial_event_type', ephys_start='trial_event_time')
-    q_trial_event = (experiment.BehaviorTrial.Event * q_ephys_event
-                     & 'trial_event_type NOT in ("send scheduled wave", "trigger ephys rec.", "trigger imaging")'
-                     & session_key).proj(
-        event_start='trial_event_time - ephys_start', event_stop='trial_event_time - ephys_start + duration')
-
-    trials, event_types, event_starts, event_stops = q_trial_event.fetch(
+    trials, event_types, event_starts, event_stops = (
+            q_trial_event
+            & f'trial in ({",".join(np.array(invalid_trials).astype(str))})').fetch(
         'trial', 'trial_event_type', 'event_start', 'event_stop', order_by='trial')
     trial_starts = [trial_times[tr][0] for tr in trials]
     event_starts = event_starts.astype(float) + trial_starts
