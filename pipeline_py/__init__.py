@@ -14,6 +14,9 @@ while not is_initialized:
         ephys = dj.create_virtual_module('ephys', db_prefix + 'ephys')
         misc = dj.create_virtual_module('misc', db_prefix + 'misc')
 
+        len(experiment.BehaviorTrial.Event())
+        len(ephys.Unit())
+
         is_initialized = True
     except dj.DataJointError as e:
         print('The schemas/tables have not yet been created - awaiting MATLAB "init.m"')
