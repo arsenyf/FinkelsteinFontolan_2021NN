@@ -83,8 +83,16 @@ On the Command Window, run
 
     init
     
+## Step 6: Go to MATLAB and explore the data
+
+Ensure ***DJ_S1ALM*** is your "Current Folder", and you are ready to connect to the pipeline.
+For example, to inspect the Session table, try:
+
     
-## Step 6: Go to Jupyter notebook and explore the data
+    EXP.Session()
+
+    
+## OR Step 6: Go to Jupyter notebook and explore the data
 The password to connect is ***datajoint***
 
 Create any new notebooks in the ***dja*** folder
@@ -100,10 +108,3 @@ To connect to the pipeline, see the sample code below
     
     experiment.Session()
     
-## Step 6: Go to MATLAB and explore the data
-
-Ensure ***DJ_S1ALM*** is your "Current Folder", and you are ready to connect to the pipeline.
-For example, to inspect the Session table, try:
-
-    
-    EXP.Session()
