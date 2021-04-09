@@ -15,7 +15,7 @@ Follow the instruction here to:
 
 2. Initialize the DataJoint pipeline (e.g. schemas and tables) in the said database
 
-3. Populate the database with data related to the publication (data published separately as in NWB format)
+3. Populate the database with data related to the publication (data published separately in NWB format)
 
 5. Access the data via DataJoint framework with MATLAB or Python
 
