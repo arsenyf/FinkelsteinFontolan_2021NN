@@ -31,13 +31,13 @@ Follow the instruction here to:
 Navigate to a new folder directory for this project. Then clone this repository (`publication_ready` branch):
     
     
-    git clone --single-branch -b publication_ready https://github.com/arsenyf/DJ_S1ALM
+    git clone --single-branch -b publication_ready https://github.com/arsenyf/FinkelsteinFontolan_2021NN
     
 
-Change your working directory to the `DJ_S1ALM` folder
+Change your working directory to the `FinkelsteinFontolan_2021NN` folder
 
 
-    cd DJ_S1ALM
+    cd FinkelsteinFontolan_2021NN
 
 
 ## Step 2: Setup `dj_local_conf.json`
@@ -76,7 +76,7 @@ To resume working with this pipeline, you will only need to `docker-compose up` 
 
 ## Step 5: Launch MATLAB and run `init.m`
 
-Ensure ***DJ_S1ALM*** is your "Current Folder"
+Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder"
 
 On the Command Window, run
 
@@ -85,7 +85,7 @@ On the Command Window, run
     
 ## Step 6: Go to MATLAB and explore the data
 
-Ensure ***DJ_S1ALM*** is your "Current Folder", and you are ready to connect to the pipeline.
+Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder", and you are ready to connect to the pipeline.
 For example, to inspect the Session table, try:
 
     
