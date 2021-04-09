@@ -4,7 +4,7 @@ This repository houses the data analysis code accompanying the following publica
 
 Finkelstein, Fontolan et al. "Attractor dynamics gate cortical information flow during decision-making"
 
-The pipeline for data analysis is in DataJoint framework. For users interested in recreating this pipeline, import data and reproduce the analysis results, 
+The pipeline for data analysis is in [DataJoint](https://datajoint.io/) framework. For users interested in recreating this pipeline, import data and reproduce the analysis results, 
 please see the instruction below.
 
 # Initialize the pipeline
