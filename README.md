@@ -22,7 +22,7 @@ Follow the instruction here to:
 
 ## Prerequisite
 
-+ Have [Docker] (https://www.docker.com/products/docker-desktop) installed on your computer
++ Have [Docker](https://www.docker.com/products/docker-desktop) installed on your computer
 
 + Have [DataJoint-MATLAB](https://docs.datajoint.io/matlab/setup/01-Install-and-Connect.html) package installed
 
