@@ -60,11 +60,11 @@ Download data in NWB format, and place those NWB files in the created ***nwb_dat
 ## Step 4: Run `docker-compose up`
 Build the Docker images (one time)
 
-    docker-compose build
+    docker-compose build --no-cache
 
 Launch the containers:
     
-    docker-compose up
+    docker-compose up -d
     
 When finished, you can stop the containers:
 
@@ -76,17 +76,17 @@ To resume working with this pipeline, you will only need to `docker-compose up` 
 
 ## Step 5: Launch MATLAB and run `init.m`
 
-Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder"
+Restart MATLAB to ensure no previous DataJoint connections are open. Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder" in MATLAB
 
-On the Command Window, run
+On the Command Window (in MATLAB), run
 
 
     init
     
 ## Step 6: Go to MATLAB and explore the data
 
-Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder", and you are ready to connect to the pipeline.
-For example, to inspect the Session table, try:
+Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder" in MATLAB.
+Explore the data. For example, to inspect the Session table, try:
 
     
     EXP.Session()
