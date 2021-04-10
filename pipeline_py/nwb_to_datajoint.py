@@ -81,12 +81,9 @@ class IngestionStatus(dj.Imported):
     """
 
 
-photostim_dict = {p['photo_stim']: p for p in experiment.Photostim.fetch('KEY')}
-fiducials_type_dict = {(p['tracking_device_id'], p['video_fiducial_name']): p
-                       for p in experiment.VideoFiducialsType.fetch('KEY')}
-
-
 def ingest_to_pipeline(nwb_filepath):
+    photostim_dict = {p['photo_stim']: p for p in experiment.Photostim.fetch('KEY')}
+
     print('-----------------------------------------------------------------------')
     print(f'Ingesting from: {nwb_filepath.name} ...')
     io = NWBHDF5IO(pathlib.Path(nwb_filepath).as_posix(), mode='r', load_namespaces=True)
