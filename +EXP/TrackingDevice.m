@@ -6,7 +6,6 @@ tracking_device_id          : int                  # number of the device, e.g. 
 ---
 tracking_device_description:   varchar(1000)       # e.g. side-view camera
 tracking_device_model:         varchar(1000)       # make and model of the tracking device
-
 %}
 
 

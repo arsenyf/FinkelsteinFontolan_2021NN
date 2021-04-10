@@ -40,7 +40,9 @@ classdef SessionBehavPerformance < dj.Computed
             %% Populating ANL.SessionBehavPerformance
             task = fetch1(EXP.Task & key,'task');
             trials_quit = fetch1(ANL.SessionBehavOverview & key,'trials_quit');
-            
+%             if isempty(trials_quit)
+%                 trials_quit=[];
+%             end
             trial_type_names = unique([fetchn((EXP.TrialName) & key, 'trial_type_name')]);
             
             RT_hit =cell(numel(trial_type_names),1);
@@ -88,7 +90,8 @@ classdef SessionBehavPerformance < dj.Computed
                 [trials,licks_trials]=fetchn(ba & 'outcome="hit"' & 'early_lick="no early"','trial','action_event_time');
                 u_trials=[];
                 u_trials = setdiff(unique(trials), trials_quit);
-                for it=1:1:numel(u_trials)
+                for it=62:1:numel(u_trials)
+it
                     licks = licks_trials(trials==u_trials(it));
                     go = go_trials(u_trials(it));
                     [ix] =find(licks>go,1);

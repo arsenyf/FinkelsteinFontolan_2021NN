@@ -27,4 +27,3 @@ classdef VideoFiducialsType < dj.Imported
     end
     
 end
-

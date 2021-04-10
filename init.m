@@ -44,3 +44,8 @@ ingested_session_count = length(fetch(q_ingested_session));
 
 fprintf('REPORT: %d/%d sessions ingested\n', ingested_session_count, total_session_count)
 
+%%
+% Delating trials with missing Go cue
+% del(EXP.SessionTrial - (EXP.BehaviorTrialEvent & 'trial_event_type="go"'))
+% f = fetch(EXP.SessionTrial - (EXP.BehaviorTrialEvent & 'trial_event_type="go"'));
+% del(EXP.SessionTrial & f);
