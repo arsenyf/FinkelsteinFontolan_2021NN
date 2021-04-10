@@ -61,7 +61,7 @@ class NWBtoDataJointIngestion(dj.Imported):
             ingest_to_pipeline(nwb_filepath)
         except (KeyboardInterrupt, SystemExit, Exception):
             IngestionStatus.insert1({**key, 'status': 'error',
-                                     'message': traceback.format_exc()},
+                                     'error_stack': traceback.format_exc()},
                                     allow_direct_insert=True)
             return
 
@@ -76,7 +76,7 @@ class IngestionStatus(dj.Imported):
     session: int
     ---
     status: enum('complete', 'error')
-    message='': varchar(5000)
+    error_stack='': varchar(5000)
     """
 
 

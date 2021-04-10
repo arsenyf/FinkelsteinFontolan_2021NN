@@ -1,19 +1,18 @@
 function get_ingestion_progress()
 
-disp('--------------------- INGESTION PROGRESS --------------------------')
+fprintf('--------------------- INGESTION PROGRESS --------------------------\n\n')
 
 try
     d = dj.conn();
 catch ME
     if strcmp(ME.identifier,'MySQL:Error')
-        disp('Unable to connect to MySQL database server. Check the following:')
+        disp('Unable to connect to MySQL database server. Plese check the following:')
         disp('  1. Check if the Docker containers are running (Did you run "docker-compose up -d"?)')
         disp('  2. To restart MySQL server, do "docker-compose down" followed by "docker-compose up -d"')
         fprintf('\nTo get the latest ingestion status, run: get_ingestion_progress()\n\n')
         return
     end
 end
-
 
 total_session_count = 98;
 
@@ -29,7 +28,6 @@ catch
     return
 end
     
-
 fprintf('%d/%d sessions ingested\n', ingested_session_count, total_session_count)
 fprintf('%d session-ingestion errors\n', error_session_count)
 fprintf('%d session in progress\n', total_session_count - (ingested_session_count + error_session_count))
