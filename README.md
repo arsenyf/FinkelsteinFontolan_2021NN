@@ -1,10 +1,10 @@
-# DataJoint pipeline for Finkelstein, Fontolan et al. project
+# DataJoint pipeline for Finkelstein, Fontolan et al. "Attractor dynamics gate cortical information flow during decision-making", 2021
 
 This repository houses the data analysis code accompanying the following publication: 
 
-Finkelstein, Fontolan et al. "Attractor dynamics gate cortical information flow during decision-making"
+Finkelstein, Fontolan et al. "Attractor dynamics gate cortical information flow during decision-making", 2021
 
-The pipeline for data analysis is in DataJoint framework. For users interested in recreating this pipeline, import data and reproduce the analysis results, 
+The pipeline for data analysis is in [DataJoint](https://datajoint.io/) framework. For users interested in recreating this pipeline, import data and reproduce the analysis results, 
 please see the instruction below.
 
 # Initialize the pipeline
@@ -15,14 +15,14 @@ Follow the instruction here to:
 
 2. Initialize the DataJoint pipeline (e.g. schemas and tables) in the said database
 
-3. Populate the database with data related to the publication (data published separately as in NWB format)
+3. Populate the database with data related to the publication (data published separately in NWB format)
 
 5. Access the data via DataJoint framework with MATLAB or Python
 
 
 ## Prerequisite
 
-+ Have Docker installed on your computer
++ Have [Docker](https://www.docker.com/products/docker-desktop) installed on your computer
 
 + Have [DataJoint-MATLAB](https://docs.datajoint.io/matlab/setup/01-Install-and-Connect.html) package installed
 
@@ -31,13 +31,13 @@ Follow the instruction here to:
 Navigate to a new folder directory for this project. Then clone this repository (`publication_ready` branch):
     
     
-    git clone --single-branch -b publication_ready https://github.com/arsenyf/DJ_S1ALM
+    git clone --single-branch -b publication_ready https://github.com/arsenyf/FinkelsteinFontolan_2021NN
     
 
-Change your working directory to the `DJ_S1ALM` folder
+Change your working directory to the `FinkelsteinFontolan_2021NN` folder
 
 
-    cd DJ_S1ALM
+    cd FinkelsteinFontolan_2021NN
 
 
 ## Step 2: Setup `dj_local_conf.json`
@@ -60,11 +60,11 @@ Download data in NWB format, and place those NWB files in the created ***nwb_dat
 ## Step 4: Run `docker-compose up`
 Build the Docker images (one time)
 
-    docker-compose build
+    docker-compose build --no-cache
 
 Launch the containers:
     
-    docker-compose up
+    docker-compose up -d
     
 When finished, you can stop the containers:
 
@@ -76,15 +76,23 @@ To resume working with this pipeline, you will only need to `docker-compose up` 
 
 ## Step 5: Launch MATLAB and run `init.m`
 
-Ensure ***DJ_S1ALM*** is your "Current Folder"
+Restart MATLAB to ensure no previous DataJoint connections are open. Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder" in MATLAB
 
-On the Command Window, run
+On the Command Window (in MATLAB), run
 
 
     init
     
+## Step 6: Go to MATLAB and explore the data
+
+Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder" in MATLAB.
+Explore the data. For example, to inspect the Session table, try:
+
     
-## Step 6: Go to Jupyter notebook and explore the data
+    EXP.Session()
+
+    
+## OR Step 6: Go to Jupyter notebook and explore the data
 The password to connect is ***datajoint***
 
 Create any new notebooks in the ***dja*** folder
@@ -100,10 +108,3 @@ To connect to the pipeline, see the sample code below
     
     experiment.Session()
     
-## Step 6: Go to MATLAB and explore the data
-
-Ensure ***DJ_S1ALM*** is your "Current Folder", and you are ready to connect to the pipeline.
-For example, to inspect the Session table, try:
-
-    
-    EXP.Session()
