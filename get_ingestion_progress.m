@@ -2,13 +2,33 @@ function get_ingestion_progress()
 
 disp('--------------------- INGESTION PROGRESS --------------------------')
 
+try
+    d = dj.conn();
+catch ME
+    if strcmp(ME.identifier,'MySQL:Error')
+        disp('Unable to connect to MySQL database server. Check the following:')
+        disp('  1. Check if the Docker containers are running (Did you run "docker-compose up -d"?)')
+        disp('  2. To restart MySQL server, do "docker-compose down" followed by "docker-compose up -d"')
+        fprintf('\nTo get the latest ingestion status, run: get_ingestion_progress()\n\n')
+        return
+    end
+end
+
+
 total_session_count = 98;
 
 NWBtoDataJointIngestion = ingestion.getSchema().v.NWBtoDataJointIngestion;
 IngestionStatus = ingestion.getSchema().v.IngestionStatus;
 
-ingested_session_count = length(fetch(IngestionStatus & 'status = "complete"'));
-error_session_count = length(fetch(IngestionStatus & 'status = "error"'));
+try
+    ingested_session_count = length(fetch(IngestionStatus & 'status = "complete"'));
+    error_session_count = length(fetch(IngestionStatus & 'status = "error"'));
+catch
+    disp('Ingestion initializing. Please check back in a few minutes...')
+    fprintf('\nTo get the latest ingestion status, run: get_ingestion_progress()\n\n')
+    return
+end
+    
 
 fprintf('%d/%d sessions ingested\n', ingested_session_count, total_session_count)
 fprintf('%d session-ingestion errors\n', error_session_count)
