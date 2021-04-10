@@ -12,7 +12,6 @@ classdef PSTH < dj.Computed
     end
     methods(Access=protected)
         function makeTuples(self, key)
-            tic
             
             dt=fetch1(ANL.Parameters & 'parameter_name="psth_time_bin"','parameter_value');
             t_edges = [-6.5:dt:4];
@@ -21,8 +20,10 @@ classdef PSTH < dj.Computed
             ntrials =numel(go_times)';
             nunits = numel([fetchn(EPHYS.Unit & key,'unit')]);
             electrode_group = [fetchn(EPHYS.Unit & key,'electrode_group')];
-            task = fetch1(EXP.SessionTask & key,'task');
-            trial_names = [fetchn((MISC.S1TrialTypeName) & key, 'trial_type_name','ORDER BY trial')];
+            task = fetch1(EXP.Task & key,'task');
+%             trial_names = [fetchn((MISC.S1TrialTypeName) & key, 'trial_type_name','ORDER BY trial')];
+            trial_names = [fetchn((EXP.TrialName) & key, 'trial_type_name','ORDER BY trial')];
+
             outcome = fetchn(EXP.Outcome,'outcome');
             
             %% Compute PSTH and populate ANL.PSTH
@@ -78,9 +79,9 @@ classdef PSTH < dj.Computed
             
             %% Populate  ANL.PSTHAverage and ANL.PSTHAdaptiveAverage
             % Adaptive average - If a trial contains a photostim stimulations, the time epochs before the first stimulation are averaged together with corresponding no-photostim epochs from other trials
-            rel = (MISC.S1TrialTypeName * ANL.TrialTypeStimTime * EXP.BehaviorTrial) & key;
-            [trialStim_epochs_mat, trialTypeStim_epochs_mat, stim_epochs, trial_type_names]  = fn_adaptive_trial_avg_stim_mat(rel);
-            
+            rel = (EXP.TrialName * ANL.TrialTypeStimTime * EXP.BehaviorTrial) & key;
+            trial_type_names = unique([fetchn(rel, 'trial_type_name','ORDER BY trial')],'stable');
+
             counter=0;
             for  ityp = 1:1:numel(trial_type_names)
                 key_name.trial_type_name=trial_type_names{ityp};
@@ -93,24 +94,9 @@ classdef PSTH < dj.Computed
                         
                         unit_trials_conditon_type  = intersect(unit_trials{iu},trials_condition_type);
                         psth_u = squeeze (psth_t_u_tr(:, iu, :));
-                        if numel(unit_trials_conditon_type)>0
-                            [psth_adaptive_avg] = fn_adaptive_trial_avg (trialStim_epochs_mat, trialTypeStim_epochs_mat(ityp,:), stim_epochs, psth_u, trials_condition, psth_t_vector);
-                        else
-                            psth_adaptive_avg = psth_t_vector+NaN;
-                        end
                         psth_avg = mean(squeeze (psth_t_u_tr(:, iu, unit_trials_conditon_type)),2)';
                         
                         counter=counter+1;
-                        k_PSTHAdaptiveAverage(counter).subject_id=key.subject_id;
-                        k_PSTHAdaptiveAverage(counter).session=key.session;
-                        k_PSTHAdaptiveAverage(counter).electrode_group = electrode_group(iu);
-                        k_PSTHAdaptiveAverage(counter).unit = iu;
-                        k_PSTHAdaptiveAverage(counter).task = task;
-                        k_PSTHAdaptiveAverage(counter).trial_type_name=key_name.trial_type_name;
-                        k_PSTHAdaptiveAverage(counter).outcome=key_condition.outcome;
-                        k_PSTHAdaptiveAverage(counter).num_trials_averaged = numel(unit_trials_conditon_type);
-                        k_PSTHAdaptiveAverage(counter).psth_avg=psth_adaptive_avg + no_recording_times_mask;
-                        k_PSTHAdaptiveAverage(counter).psth_avg_id=counter;
                         
                         k_PSTHAverage(counter).subject_id=key.subject_id;
                         k_PSTHAverage(counter).session=key.session;
@@ -127,7 +113,6 @@ classdef PSTH < dj.Computed
                 end
             end
             insert(ANL.PSTHAverage,k_PSTHAverage);
-            insert(ANL.PSTHAdaptiveAverage,k_PSTHAdaptiveAverage);
             
             
             %% Populate  ANL.PSTHAverageLR
@@ -168,7 +153,7 @@ classdef PSTH < dj.Computed
             end
             insert(ANL.PSTHAverageLR,k_PSTHAverageLR);
             
-            toc
+            
             
         end
         

@@ -37,3 +37,8 @@ end
 %% Progress on data ingestion
 get_ingestion_progress()
 
+%%
+% Delating trials with missing Go cue
+% del(EXP.SessionTrial - (EXP.BehaviorTrialEvent & 'trial_event_type="go"'))
+% f = fetch(EXP.SessionTrial - (EXP.BehaviorTrialEvent & 'trial_event_type="go"'));
+% del(EXP.SessionTrial & f);
