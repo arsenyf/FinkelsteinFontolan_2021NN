@@ -16,10 +16,9 @@ end
 
 total_session_count = 98;
 
-NWBtoDataJointIngestion = ingestion.getSchema().v.NWBtoDataJointIngestion;
-IngestionStatus = ingestion.getSchema().v.IngestionStatus;
-
 try
+    NWBtoDataJointIngestion = ingestion.getSchema().v.NWBtoDataJointIngestion;
+    IngestionStatus = ingestion.getSchema().v.IngestionStatus;
     ingested_session_count = length(fetch(IngestionStatus & 'status = "complete"'));
     error_session_count = length(fetch(IngestionStatus & 'status = "error"'));
 catch

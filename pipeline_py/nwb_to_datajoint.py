@@ -53,19 +53,20 @@ class NWBtoDataJointIngestion(dj.Imported):
                     raise
 
     def make(self, key):
-        nwb_directory = pathlib.Path(os.environ['NWB_DIRECTORY'])
-        nwb_filepath = f'{key["subject_id"]}_session_{key["session"]}.nwb'
-        nwb_filepath = nwb_directory / nwb_filepath
+        if key not in (experiment.Session & ephys.TrialSpikes).proj():
+            nwb_directory = pathlib.Path(os.environ['NWB_DIRECTORY'])
+            nwb_filepath = f'{key["subject_id"]}_session_{key["session"]}.nwb'
+            nwb_filepath = nwb_directory / nwb_filepath
 
-        try:
-            ingest_to_pipeline(nwb_filepath)
-        except (KeyboardInterrupt, SystemExit, Exception):
-            IngestionStatus.insert1({**key, 'status': 'error',
-                                     'error_stack': traceback.format_exc()},
-                                    allow_direct_insert=True)
-            return
+            try:
+                ingest_to_pipeline(nwb_filepath)
+            except (KeyboardInterrupt, SystemExit, Exception):
+                IngestionStatus.insert1({**key, 'status': 'error',
+                                         'error_stack': traceback.format_exc()},
+                                        allow_direct_insert=True)
+                return
 
-        self.insert1(key, allow_direct_insert=True)
+        self.insert1(key, allow_direct_insert=True, skip_duplicates=True)
         IngestionStatus.insert1({**key, 'status': 'complete'}, allow_direct_insert=True)
 
 
@@ -250,15 +251,16 @@ def ingest_to_pipeline(nwb_filepath):
 
 
 def main():
+    insert_lookup()
     while True:
         NWBtoDataJointIngestion.populate()
         time.sleep(120)  # sleep for 2 minutes
+
 
 # ============================== INGEST ALL NWB FILES ==========================================
 
 
 if __name__ == '__main__':
-    nwb_dir = None
     if len(sys.argv) > 1:
         os.environ['NWB_DIRECTORY'] = sys.argv[1]
 
