@@ -273,8 +273,8 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
 
     for invalid_event in invalid_events:
         delay_time = float((q_trial_event
-                            & {'trial': trial['trial'], 'trial_event_type': 'delay'}).fetch1(
-            'event_start'))
+                            & {'trial': invalid_event['trial'],
+                               'trial_event_type': 'delay'}).fetch1('event_start'))
         trials = np.append(trials, invalid_event['trial'])
         event_types = np.append(event_types, invalid_event['trial_event_type'])
         event_starts = np.append(event_starts, delay_time + 2)
