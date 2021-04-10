@@ -223,6 +223,9 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
 
     skip_adding_columns = experiment.Session.primary_key + ['trial_uid', 'trial']
     invalid_events = []
+    corrected_invalid_event_trials, corrected_invalid_event_types = [], []
+    corrected_invalid_event_starts, correceted_invalid_event_stops = [], []
+
     if q_trial:
         # Get trial descriptors from TrialSet.Trial and TrialStimInfo
         trial_columns = {tag: {'name': tag,
@@ -246,11 +249,43 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
             # mark bad trials - those with invalid go-cue time
             # marked as early-lick trials to be excluded from downstream analysis
             invalid_trial_events = (
-                    q_trial_event & {'trial': trial['trial'], 'trial_event_type': 'go'}
+                    q_trial_event & {'trial': trial['trial']}
                     & f'event_start >= {trial["stop_time"] - trial["start_time"]}').fetch('KEY')
             if invalid_trial_events:
-                invalid_events.extend(invalid_trial_events)
                 trial['early_lick'] = 'early'
+
+                trial_event_keys, trial_event_starts = (q_trial_event
+                                                        & {'trial': trial['trial']}).fetch(
+                    'KEY', 'event_start', order_by='event_start')
+
+                previous_event_time = 0
+                for e_key, e_start in zip(trial_event_keys, trial_event_starts.astype(float)):
+                    if e_key in invalid_trial_events:
+                        if e_key['trial_event_type'] == 'sample-start chirp':
+                            e_start = 0
+                            e_stop = e_start + 0.02
+                        elif e_key['trial_event_type'] == 'sample':
+                            e_start = previous_event_time + 0.15
+                            e_stop = e_start + 0.7
+                        elif e_key['trial_event_type'] == 'sample-end chirp':
+                            e_start = previous_event_time + 0
+                            e_stop = e_start + 0.02
+                        elif e_key['trial_event_type'] == 'delay':
+                            e_start = previous_event_time + 0.15
+                            e_stop = e_start + 2
+                        elif e_key['trial_event_type'] == 'go':
+                            e_start = previous_event_time + 2
+                            e_stop = e_start + 0.01
+                        else:
+                            raise ValueError(f'Unexpected event type: {e_key["trial_event_type"]}')
+                        corrected_invalid_event_trials.append(trial['trial'])
+                        corrected_invalid_event_types.append(e_key['trial_event_type'])
+                        corrected_invalid_event_starts.append(e_start)
+                        correceted_invalid_event_stops.append(e_stop)
+                    else:
+                        previous_event_time = e_start
+
+                invalid_events.extend(invalid_trial_events)
 
             # create trial entries
             trial['id'] = trial['trial']  # rename 'trial_id' to 'id'
@@ -271,18 +306,15 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
     trials, event_types, event_starts, event_stops = q_trial_event.fetch(
         'trial', 'trial_event_type', 'event_start', 'event_stop', order_by='trial')
 
-    for invalid_event in invalid_events:
-        delay_time = float((q_trial_event
-                            & {'trial': invalid_event['trial'],
-                               'trial_event_type': 'delay'}).fetch1('event_start'))
-        trials = np.append(trials, invalid_event['trial'])
-        event_types = np.append(event_types, invalid_event['trial_event_type'])
-        event_starts = np.append(event_starts, delay_time + 2)
-        event_stops = np.append(event_stops, delay_time + 2.01)
+    if invalid_events:
+        trials = np.concatenate([trials, corrected_invalid_event_trials])
+        event_types = np.concatenate([event_types, corrected_invalid_event_types])
+        event_starts = np.concatenate([event_starts.astype(float), corrected_invalid_event_starts])
+        event_stops = np.concatenate([event_stops.astype(float), correceted_invalid_event_stops])
 
     trial_starts = [trial_times[tr][0] for tr in trials]
-    event_starts = event_starts.astype(float) + trial_starts
-    event_stops = event_stops.astype(float) + trial_starts
+    event_starts = event_starts + trial_starts
+    event_stops = event_stops + trial_starts
 
     for etype in set(event_types):
         event_labels[etype + '_start_times'] = len(event_labels)
