@@ -18,7 +18,7 @@ while not is_initialized:
         len(ephys.Unit())
 
         is_initialized = True
-    except dj.DataJointError as e:
+    except (dj.DataJointError, AttributeError) as e:
         print('The schemas/tables have not yet been created - awaiting MATLAB "init.m"')
         time.sleep(120)  # sleep for 2 minutes
         pass

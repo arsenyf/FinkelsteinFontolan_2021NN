@@ -5,8 +5,8 @@ dj.config();
 dj.config.load('dj_local_conf.json')
 cfg = dj.config;
 
-package_names = {'CF', 'LAB','EXP', 'EPHYS', 'MISC', 'ANL'};
-schema_names = {'cf', 'lab','experiment', 'ephys', 'misc', 'analysis'};
+package_names = {'CF', 'LAB','EXP', 'EPHYS', 'MISC'};
+schema_names = {'cf', 'lab','experiment', 'ephys', 'misc'};
 
 %% Instantiate the pipeline
 
@@ -35,12 +35,5 @@ for s_idx = 1 : numel(schema_names)
 end
 
 %% Progress on data ingestion
-disp('--------------------- INGESTION PROGRESS --------------------------')
-
-total_session_count = 98;
-
-q_ingested_session = EXP.Session & EXP.BehaviorTrial & EPHYS.Unit;
-ingested_session_count = length(fetch(q_ingested_session));
-
-fprintf('REPORT: %d/%d sessions ingested\n', ingested_session_count, total_session_count)
+get_ingestion_progress()
 
