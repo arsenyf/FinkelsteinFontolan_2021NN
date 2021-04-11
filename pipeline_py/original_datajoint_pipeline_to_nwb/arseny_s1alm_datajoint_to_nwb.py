@@ -248,9 +248,10 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
 
             # mark bad trials - those with invalid go-cue time
             # marked as early-lick trials to be excluded from downstream analysis
+            trial_duration = trial["stop_time"] - trial["start_time"]
             invalid_trial_events = (
                     q_trial_event & {'trial': trial['trial']}
-                    & f'event_start >= {trial["stop_time"] - trial["start_time"]}').fetch('KEY')
+                    & f'event_start >= {trial_duration}').fetch('KEY')
             if invalid_trial_events:
                 trial['early_lick'] = 'early'
 
@@ -278,6 +279,11 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
                             e_stop = e_start + 0.01
                         else:
                             raise ValueError(f'Unexpected event type: {e_key["trial_event_type"]}')
+
+                        if e_start >= trial_duration:
+                            e_start = trial_duration - 0.02
+                            e_stop = e_start + 0.01
+
                         corrected_invalid_event_trials.append(trial['trial'])
                         corrected_invalid_event_types.append(e_key['trial_event_type'])
                         corrected_invalid_event_starts.append(e_start)

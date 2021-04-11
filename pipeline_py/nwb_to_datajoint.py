@@ -250,11 +250,17 @@ def ingest_to_pipeline(nwb_filepath):
 def main():
     insert_lookup()
     while True:
+        # do ingestion
         NWBtoDataJointIngestion.populate()
+        # clean up
+        orphaned_sessions = (IngestionStatus - experiment.Session).fetch('KEY')
+        with dj.config(safemode=False):
+            (IngestionStatus & orphaned_sessions).delete()
+
         time.sleep(120)  # sleep for 2 minutes
 
 
-# ============================== INGEST ALL NWB FILES ==========================================
+# ============================== INGEST ALL NWB FILES ========================================
 
 
 if __name__ == '__main__':

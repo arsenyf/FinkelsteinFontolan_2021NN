@@ -83,6 +83,13 @@ On the Command Window (in MATLAB), run
 
     init
     
+    
+To rerun the ingestion progress check, run
+
+
+    get_ingestion_progress()
+    
+    
 ## Step 6: Go to MATLAB and explore the data
 
 Ensure ***FinkelsteinFontolan_2021NN*** is your "Current Folder" in MATLAB.
@@ -103,8 +110,7 @@ To connect to the pipeline, see the sample code below
     import os
     os.chdir('/main')
     
-    from:;w:wq!
-     :::pipeline_py.nwb_to_datajoint import *
+    from pipeline_py.nwb_to_datajoint import *
     
     experiment.Session()
     
