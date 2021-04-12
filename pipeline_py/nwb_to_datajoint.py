@@ -33,7 +33,9 @@ class NWBtoDataJointIngestion(dj.Imported):
 
         session_list = []
         for nwb_fp in nwb_directory.rglob('*.nwb'):
-            subject, _, session = nwb_fp.stem.split('_')
+            with NWBHDF5IO(nwb_fp.as_posix(), mode='r', load_namespaces=True) as io:
+                nwbfile = io.read()
+                subject, _, session = nwbfile.identifier.split('_')
             session_key = {'subject_id': int(subject), 'session': int(session)}
             if session_key not in ingested_sessions:
                 session_list.append(session_key)
