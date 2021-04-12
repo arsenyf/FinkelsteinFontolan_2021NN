@@ -32,7 +32,7 @@ class NWBtoDataJointIngestion(dj.Imported):
         ingested_sessions = IngestionStatus.fetch('KEY')
 
         session_list = []
-        for nwb_fp in nwb_directory.glob('*.nwb'):
+        for nwb_fp in nwb_directory.rglob('*.nwb'):
             subject, _, session = nwb_fp.stem.split('_')
             session_key = {'subject_id': int(subject), 'session': int(session)}
             if session_key not in ingested_sessions:
