@@ -28,7 +28,7 @@ Follow the instruction here to:
 
 
 ## Step 1: Clone the repository
-Navigate to a new folder directory for this project. Then clone this repository (`publication_ready` branch):
+Navigate to a new folder directory for this project. Then clone this repository (`publication_ready` branch) by typing the following in the Command Prompt
     
     
     git clone --single-branch -b publication_ready https://github.com/arsenyf/FinkelsteinFontolan_2021NN
@@ -73,6 +73,8 @@ When finished, you can stop the containers:
 Note: a new ***db_data*** folder will be created, and the data for MySQL database is stored in this ***db_data*** folder, this folder is persistent.
 To resume working with this pipeline, you will only need to `docker-compose up` again
 
+
+Note that for Steps 5-6, the Command Promt should remain open
 
 ## Step 5: Launch MATLAB and run `init.m`
 
