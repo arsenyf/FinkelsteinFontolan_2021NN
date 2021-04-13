@@ -14,13 +14,14 @@ catch ME
     end
 end
 
-total_session_count = 98;
 
 try
+    NWBFile = ingestion.getSchema().v.NWBFile;
     NWBtoDataJointIngestion = ingestion.getSchema().v.NWBtoDataJointIngestion;
-    IngestionStatus = ingestion.getSchema().v.IngestionStatus;
-    ingested_session_count = length(fetch(IngestionStatus & 'status = "complete"'));
-    error_session_count = length(fetch(IngestionStatus & 'status = "error"'));
+    
+    total_session_count = length(fetch(NWBFile));
+    ingested_session_count = length(fetch(NWBtoDataJointIngestion & 'status = "complete"'));
+    error_session_count = length(fetch(NWBtoDataJointIngestion & 'status = "error"'));
 catch
     disp('Ingestion initializing. Please check back in a few minutes...')
     fprintf('\nTo get the latest ingestion status, run: get_ingestion_progress()\n\n')
@@ -33,7 +34,7 @@ fprintf('%d session in progress\n', total_session_count - (ingested_session_coun
 
 if error_session_count ~= 0
     fprintf('\n\n\t----------------- Errors ----------------------\n')
-    error_ingestions = (IngestionStatus & 'status = "error"');
+    error_ingestions = (NWBtoDataJointIngestion & 'status = "error"');
     disp(error_ingestions)
 end
 

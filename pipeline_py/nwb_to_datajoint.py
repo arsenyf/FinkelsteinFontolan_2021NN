@@ -20,67 +20,38 @@ schema = dj.schema(db_prefix + 'ingestion')
 
 
 @schema
-class NWBtoDataJointIngestion(dj.Imported):
+class NWBFile(dj.Manual):
     definition = """
-    -> experiment.Session
+    nwb_fullpath: varchar(256)
     """
-
-    @property
-    def key_source(self):
-        nwb_directory = pathlib.Path(os.environ['NWB_DIRECTORY'])
-
-        ingested_sessions = IngestionStatus.fetch('KEY')
-
-        session_list = []
-        for nwb_fp in nwb_directory.rglob('*.nwb'):
-            with NWBHDF5IO(nwb_fp.as_posix(), mode='r', load_namespaces=True) as io:
-                nwbfile = io.read()
-                subject, _, session = nwbfile.identifier.split('_')
-            session_key = {'subject_id': int(subject), 'session': int(session)}
-            if session_key not in ingested_sessions:
-                session_list.append(session_key)
-
-        return session_list
-
-    def populate(self, *args, **kwargs):
-        # 'populate' which won't require upstream tables
-        # 'reserve_jobs' not parallel, overloaded to mean "don't exit on error"
-        for k in self.key_source:
-            try:
-                with dj.conn().transaction:
-                    self.make(k)
-            except Exception as e:
-                print('session key {} error: {}'.format(k, repr(e)))
-                if not kwargs.get('reserve_jobs', False):
-                    raise
-
-    def make(self, key):
-        if key not in (experiment.Session & ephys.TrialSpikes).proj():
-            nwb_directory = pathlib.Path(os.environ['NWB_DIRECTORY'])
-            nwb_filepath = f'{key["subject_id"]}_session_{key["session"]}.nwb'
-            nwb_filepath = nwb_directory / nwb_filepath
-
-            try:
-                ingest_to_pipeline(nwb_filepath)
-            except (KeyboardInterrupt, SystemExit, Exception):
-                IngestionStatus.insert1({**key, 'status': 'error',
-                                         'error_stack': traceback.format_exc()},
-                                        allow_direct_insert=True)
-                return
-
-        self.insert1(key, allow_direct_insert=True, skip_duplicates=True)
-        IngestionStatus.insert1({**key, 'status': 'complete'}, allow_direct_insert=True)
 
 
 @schema
-class IngestionStatus(dj.Imported):
+class NWBtoDataJointIngestion(dj.Imported):
     definition = """
-    subject_id: int
-    session: int
+    -> NWBFile
     ---
     status: enum('complete', 'error')
     error_stack='': varchar(5000)
     """
+
+    class Session(dj.Part):
+        definition = """
+        -> master
+        ---
+        -> experiment.Session
+        """
+
+    def make(self, key):
+        nwb_filepath = pathlib.Path(key['nwb_fullpath'])
+        try:
+            session_key = ingest_to_pipeline(nwb_filepath)
+            self.insert1({**key, 'status': 'complete'})
+            self.Session.insert1({**key, **session_key})
+        except Exception:
+            self.insert1({**key,
+                          'status': 'error',
+                          'error_stack': traceback.format_exc()})
 
 
 def ingest_to_pipeline(nwb_filepath):
@@ -247,17 +218,24 @@ def ingest_to_pipeline(nwb_filepath):
 
     io.close()
     print(f'\tIngestion for {session_key} completed!')
+    return session_key
 
 
 def main():
     insert_lookup()
+
+    nwb_directory = pathlib.Path(os.environ['NWB_DIRECTORY'])
+    nwbfiles = [{'nwb_fullpath': nwb_fp.as_posix()} for nwb_fp in nwb_directory.rglob('*.nwb')]
+    NWBFile.insert(nwbfiles, skip_duplicates=True)
+
     while True:
         # do ingestion
         NWBtoDataJointIngestion.populate()
         # clean up
-        orphaned_sessions = (IngestionStatus - experiment.Session).fetch('KEY')
+        orphaned_sessions = (NWBtoDataJointIngestion - NWBtoDataJointIngestion.Session
+                             & 'status = "complete"').fetch('KEY')
         with dj.config(safemode=False):
-            (IngestionStatus & orphaned_sessions).delete()
+            (NWBtoDataJointIngestion & orphaned_sessions).delete()
 
         time.sleep(120)  # sleep for 2 minutes
 
