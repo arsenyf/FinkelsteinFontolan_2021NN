@@ -16,11 +16,6 @@ classdef IncludeUnit2 < dj.Computed
             Param = struct2table(fetch (ANL.Parameters,'*'));
             mintrials_unit =  Param.parameter_value{(strcmp('mintrials_unit',Param.parameter_name))};
             minimal_mean_fr= Param.parameter_value{(strcmp('minimal_mean_fr',Param.parameter_name))};
-%             minimal_mean_fr_sample = Param.parameter_value{(strcmp('minimal_mean_fr_sample',Param.parameter_name))};
-%             minimal_mean_fr_delay = Param.parameter_value{(strcmp('minimal_mean_fr_delay',Param.parameter_name))};
-%             minimal_mean_fr_response = Param.parameter_value{(strcmp('minimal_mean_fr_response',Param.parameter_name))};
-%                         minimal_adaptive_peak_fr_basic_trials = Param.parameter_value{(strcmp('minimal_adaptive_peak_fr_basic_trials',Param.parameter_name))};
-
             
             % number of trials (basic left/right) trials without additional photostim, exluding early licks. Only trials that happened while the animal was behaving are considered
             rel1 = (EPHYS.TrialSpikes * EPHYS.Unit * EXP.BehaviorTrial * EXP.TrialName) & key & 'outcome ="hit"' & 'early_lick="no early"'  & 'trial_type_name="r"'; % & ANL.TrialBehaving 

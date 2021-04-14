@@ -6,7 +6,7 @@ dj.config.load('dj_local_conf.json')
 cfg = dj.config;
 
 package_names = {'CF', 'LAB','EXP', 'EPHYS', 'MISC', 'ANL'};
-schema_names = {'cf', 'lab','experiment', 'ephys', 'misc', 'anl'};
+schema_names = {'cf', 'lab','experiment', 'ephys', 'misc', 'analysis'};
 
 %% Instantiate the pipeline
 

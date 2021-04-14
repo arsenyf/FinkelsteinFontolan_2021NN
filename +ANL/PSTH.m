@@ -77,8 +77,7 @@ classdef PSTH < dj.Computed
             insert(ANL.PSTHTrial,k_PSTHTrial);
             
             
-            %% Populate  ANL.PSTHAverage and ANL.PSTHAdaptiveAverage
-            % Adaptive average - If a trial contains a photostim stimulations, the time epochs before the first stimulation are averaged together with corresponding no-photostim epochs from other trials
+            %% Populate  ANL.PSTHAverage 
             rel = (EXP.TrialName * ANL.TrialTypeStimTime * EXP.BehaviorTrial) & key;
             trial_type_names = unique([fetchn(rel, 'trial_type_name','ORDER BY trial')],'stable');
 
