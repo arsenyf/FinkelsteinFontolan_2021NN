@@ -24,7 +24,7 @@ misc = dj.create_virtual_module('misc', 'arseny_s1alm_misc')
 
 
 # ============================== SET CONSTANTS ==========================================
-default_nwb_output_dir = os.path.join('.', 'NWB 2.0')
+default_nwb_output_dir = os.path.join('.', 'nwb_data')
 zero_zero_time = datetime.strptime('00:00:00', '%H:%M:%S').time()  # no precise time available
 hardware_filter = 'Bandpass filtered 300-6K Hz'
 institution = 'Janelia Research Campus'
@@ -44,9 +44,12 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
     # ============================== META INFORMATION ===============================
     # ===============================================================================
 
+    session_details = (experiment.SessionTask * experiment.Task
+                       * experiment.SessionTraining & session_key).fetch1()
+
     # -- NWB file - a NWB2.0 file for each session
     nwbfile = NWBFile(identifier=f'{this_session["subject_id"]}_session_{this_session["session"]}',
-                      session_description=json.dumps((experiment.SessionTask * experiment.Task & session_key).fetch1()),
+                      session_description=json.dumps(session_details),
                       session_start_time=datetime.combine(this_session['session_date'], zero_zero_time),
                       file_create_date=datetime.now(tzlocal()),
                       experimenter=this_session['username'],
@@ -319,8 +322,8 @@ def export_to_nwb(session_key, nwb_output_dir=default_nwb_output_dir, save=False
         event_stops = np.concatenate([event_stops.astype(float), correceted_invalid_event_stops])
 
     trial_starts = [trial_times[tr][0] for tr in trials]
-    event_starts = event_starts + trial_starts
-    event_stops = event_stops + trial_starts
+    event_starts = event_starts.astype(float) + trial_starts
+    event_stops = event_stops.astype(float) + trial_starts
 
     for etype in set(event_types):
         event_labels[etype + '_start_times'] = len(event_labels)
