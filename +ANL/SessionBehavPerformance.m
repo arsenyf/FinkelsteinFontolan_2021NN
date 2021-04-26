@@ -90,8 +90,7 @@ classdef SessionBehavPerformance < dj.Computed
                 [trials,licks_trials]=fetchn(ba & 'outcome="hit"' & 'early_lick="no early"','trial','action_event_time');
                 u_trials=[];
                 u_trials = setdiff(unique(trials), trials_quit);
-                for it=62:1:numel(u_trials)
-it
+                for it=1:1:numel(u_trials)
                     licks = licks_trials(trials==u_trials(it));
                     go = go_trials(u_trials(it));
                     [ix] =find(licks>go,1);
