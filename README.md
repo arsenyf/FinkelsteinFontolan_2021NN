@@ -28,10 +28,10 @@ Follow the instruction here to:
 
 
 ## Step 1: Clone the repository
-Navigate to a new folder directory for this project. Then clone this repository (`publication_ready` branch) by typing the following in the Command Prompt
+Navigate to a new folder directory for this project. Then clone this repository by typing the following in the Command Prompt
     
     
-    git clone --single-branch -b publication_ready https://github.com/arsenyf/FinkelsteinFontolan_2021NN
+    git clone https://github.com/arsenyf/FinkelsteinFontolan_2021NN
     
 
 Change your working directory to the `FinkelsteinFontolan_2021NN` folder

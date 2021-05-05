@@ -80,12 +80,15 @@ def ingest_to_pipeline(nwb_filepath):
 
     # =============================== SESSION ===========================
     session_key = {**subject_key, 'session': int(nwbfile.identifier.split('_')[-1])}
+    session_details = json.loads(nwbfile.session_description)
     print(f'\tSession: {session_key}')
     if session_key not in experiment.Session.proj():
         print(f'\tSession...')
         experiment.Session.insert1({**session_key, 'session_date': nwbfile.session_start_time.date(),
                                     'username': nwbfile.experimenter[0], 'rig': 'ephys'})
         experiment.SessionComment.insert1({**session_key, 'session_comment': nwbfile.data_collection})
+        experiment.SessionTask.insert1(session_details, ignore_extra_fields=True)
+        experiment.SessionTraining.insert1(session_details, ignore_extra_fields=True)
 
     units_df = nwbfile.units.to_dataframe()
     trials_df = nwbfile.trials.to_dataframe()
@@ -234,8 +237,9 @@ def main():
         # clean up
         orphaned_sessions = (NWBtoDataJointIngestion - NWBtoDataJointIngestion.Session
                              & 'status = "complete"').fetch('KEY')
-        with dj.config(safemode=False):
-            (NWBtoDataJointIngestion & orphaned_sessions).delete()
+        if orphaned_sessions:
+            with dj.config(safemode=False):
+                (NWBtoDataJointIngestion & orphaned_sessions).delete()
 
         time.sleep(120)  # sleep for 2 minutes
 
