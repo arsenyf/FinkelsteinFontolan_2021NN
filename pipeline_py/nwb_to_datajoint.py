@@ -88,6 +88,8 @@ def ingest_to_pipeline(nwb_filepath):
                                     'username': nwbfile.experimenter[0], 'rig': 'ephys'})
         experiment.SessionComment.insert1({**session_key, 'session_comment': nwbfile.data_collection})
         experiment.SessionTask.insert1(session_details, ignore_extra_fields=True)
+        if "training_type" not in session_details:
+            session_details["training_type"] = "regular"
         experiment.SessionTraining.insert1(session_details, ignore_extra_fields=True)
 
     units_df = nwbfile.units.to_dataframe()
