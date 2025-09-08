@@ -13,6 +13,7 @@ while not is_initialized:
         experiment = dj.create_virtual_module('experiment', db_prefix + 'experiment')
         ephys = dj.create_virtual_module('ephys', db_prefix + 'ephys')
         misc = dj.create_virtual_module('misc', db_prefix + 'misc')
+        analysis = dj.create_virtual_module('analysis', db_prefix + 'analysis')
 
         len(experiment.BehaviorTrial.Event())
         len(ephys.Unit())
